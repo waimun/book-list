@@ -1,70 +1,128 @@
-# Getting Started with Create React App
+# Overview
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+- This project uses [Create React App](https://github.com/facebook/create-react-app). To learn more about its
+creation process and usage, you can visit the link.
+- This application requires an API endpoint that searches for books via a proxy to Goodreads API.
+  - The environment variable `REACT_APP_BOOK_SEARCH_ENDPOINT` in the `.env` file defines the endpoint.
+  - The API project is in the `api` top-level folder of this repository.
 
-## Available Scripts
+# React Components Design
 
-In the project directory, you can run:
+## BookList
 
-### `npm start`
+In `App.js`, the `BookList` component renders. At a high level, this component consists of 3 components that are
+responsible for searching books, displaying a list of books, and paginating the results returned from the search.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```
+----------------------
+| BookList           |
+|                    |
+|   -------------    |
+|   | SearchBox |    |
+|   -------------    |
+|                    |
+|   ------------     |
+|   | BookItem |     |
+|   ------------     |
+|   ------------     |
+|   | BookItem |     |
+|   ------------     |
+|   ------------     |
+|   |   ...    |     |
+|   ------------     |
+|                    |
+|   --------------   |
+|   | Pagination |   |
+|   --------------   |
+----------------------
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+The primary goal of the `BookList` is to call the API to search for books, and handle the search request when the user
+clicks the search button in the `SearchBox` component.
 
-### `npm test`
+- The search request has two parameters - `query` and `page`.
+  - `query` comes from the `SearchBox`
+  - `page` comes from the `BookList`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+In this component, there is a helper function: `fetchBooks` that uses two parameters to fetch data from the API.
 
-### `npm run build`
+- `BookList` component maintains 4 state variables: `pages`, `books`, `query`, and `currentPage`
+  - `pages` - calculates the number of pages based on the results fetched from the API
+  - `books` - a collection of `BookItem` mapped from the API response
+  - `query` - the user's input from the `SearchBox`
+  - `currentPage` - the current page of search results requested by the user
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+**Note:** The API endpoint is available in this component via the environment variable
+`REACT_APP_BOOK_SEARCH_ENDPOINT`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## SearchBox
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The `SearchBox` component consists of a text input field, and a search button.
 
-### `npm run eject`
+The main responsibility of this component is to store the value of the query entered by the user and nothing else.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+When the user clicks the search button, the click handler function associated with the search button takes the query
+value that is stored in the component's state. The click handler comes from the component's props `handleSearch`
+and the function `handleSearchButton` belongs to its parent component `BookList`.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+This component is not aware of how search works because the search logic originates from its parent component.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## BookItem
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+The `BookItem` component displays a book's details such as title, author, publication, and others.
 
-## Learn More
+The book data to be displayed is passed via props `detail`.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+In `BookList`, the `handleSearchButton` function maps the JSON data returned from the API to individual `BookItem`s.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Pagination
 
-### Code Splitting
+This component is perhaps the most interesting as it deals with a lot of context around pagination logic.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Occasionally, when there are too many results returned from the API, the number of books displayed in the list is 20
+per page. The `Pagination` component located at the bottom of the list displays only 10 pages at a time, but you can
+always scroll forward/backwards by clicking on the ellipsis. For example, below.
 
-### Analyzing the Bundle Size
+```
+... 4 5 6 7 8 *9* 10 11 12 13 ...
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The highlighted page number indicates to the user that it is the current page. In the above example, it is page 9.
 
-### Making a Progressive Web App
+### State
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The only state used by the `Pagination` component is `pageNumbers`. This state variable controls pagination display.
 
-### Advanced Configuration
+The component renders everytime `pageNumbers` changes.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+`pageNumbers` is an array of labels for the page numbers to be displayed as buttons in the `Pagination` component.
+Other than an array of numbers, it can sometimes contain labels for the ellipsis (...) to scroll forward or backwards.
+The label for the ellipsis can either be `<` or `>` to indicate if it is a forward/backwards scroll.
 
-### Deployment
+### Props
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+The `Pagination` component has these props: `pages`, `handleClick`, and `currentPage`.
 
-### `npm run build` fails to minify
+When the API returns results, `BookList` component calculates the number of pages based on the total number of
+results, and passes it to `Pagination` via `props.pages`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+`props.handleClick` delegates upwards to the `handlePageClick` of the `BookList` component, which in turn calls the
+`handleSearchButton` function since it only has knowledge of the page requested at this level. There is a separation
+of concern here.
+
+`props.currentPage` is used to highlight the current page that the user is on. This value comes from the `BookList`
+component state variable after the search finishes.
+
+## PaginationItems
+
+This is a child component of `Pagination` that facilitates rendering of the HTML for the page buttons.
+
+It has 3 props: `pageNumbers`, `handleClick`, and `currentPage`.
+
+Value of `props.pageNumbers` comes from its parent component state variable `pageNumbers`.
+
+`props.handleClick` references `handlePageClick` function of its parent component. This function is responsible for
+re-ordering the page numbers every time the user clicks an ellipsis (...) labeled button. If the user clicks on a page
+number instead, this function will delegate upwards to the `handlePageClick` function of the `BookList` component.
+
+`props.currentPage` activates the button as a different style to indicate the current requested page.
